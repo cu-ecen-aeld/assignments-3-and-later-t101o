@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ $# -lt 2 ]; then
     if [ -z $1 ]; then
@@ -19,6 +19,6 @@ fi
 
 FILE_COUNT=$(find $1 | wc -l)
 FILE_COUNT=$(( $FILE_COUNT - 1 ))
-SEARCH_COUNT=$(cd $1 && grep -R $2 | wc -l)
+SEARCH_COUNT=$(cd $1 && grep -R $2 . | wc -l)
 
 echo "The number of files are ${FILE_COUNT} and the number of matching lines are ${SEARCH_COUNT}"
