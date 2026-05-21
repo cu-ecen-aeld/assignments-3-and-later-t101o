@@ -1,5 +1,5 @@
 CFLAGS=-Wall -Wpedantic -g
-writer : writer.c
+all : writer.c
 	$(CROSS_COMPILE)gcc $(CFLAGS) writer.c -o writer
 
 clean :
