@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 		close(STDIN_FILENO);
 		int fd = open("/dev/null", O_RDWR);
 		if(fd != STDIN_FILENO)
-			logerrno("");
+			logerrno("Failed to open STDIN");
 		if(dup2(STDIN_FILENO, STDOUT_FILENO) != STDOUT_FILENO)
 			logerrno("Failed to redirect STDOUT");
 		if(dup2(STDIN_FILENO, STDERR_FILENO) != STDERR_FILENO)
@@ -107,14 +107,15 @@ int main(int argc, char **argv)
 	}
 
 
+	if (listen(sock, 50))
+		logerrno("Failed to listen to incoming connections");
+
 	char *buff = NULL;
 	int outfile;
 	int client;
 	struct sockaddr client_addr;
 	size_t outfile_len = 0;
 	while (!signal_received) {
-		if (listen(sock, 50))
-			logerrno("Failed to listen to incoming connections");
 
 		socklen_t client_addr_size = sizeof(client_addr);
 		client = accept(sock, &client_addr, &client_addr_size);
