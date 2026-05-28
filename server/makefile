@@ -5,4 +5,4 @@ all : aesdsocket.c
 	$(CC) $(CFLAGS) aesdsocket.c -o aesdsocket
 
 clean :
-	rm aesdsocket
+	rm -f aesdsocket
