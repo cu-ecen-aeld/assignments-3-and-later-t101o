@@ -54,6 +54,7 @@ int main(int argc, char **argv)
 	hints.ai_canonname = NULL;
 	hints.ai_addr = NULL;
 	hints.ai_next = NULL;
+	hints.ai_flags = AI_PASSIVE;
 
 	struct addrinfo *address;
 	int err = getaddrinfo(NULL, "9000", &hints, &address);
