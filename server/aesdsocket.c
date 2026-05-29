@@ -92,29 +92,36 @@ int main(int argc, char **argv)
 		if (id == -1)
 			logerrno("Failed to create daemon");
 
-		if (id) {
+		if (id)
 			_exit(EXIT_SUCCESS);
-		}
+
+		/* TODO: Error handling. */
+		umask(0);
+		if (chdir("/") == -1)
+			logerrno("Failed to change directory");
 
 		close(STDIN_FILENO);
 		int fd = open("/dev/null", O_RDWR);
-		if(fd != STDIN_FILENO)
-			logerrno("Failed to open STDIN");
-		if(dup2(STDIN_FILENO, STDOUT_FILENO) != STDOUT_FILENO)
-			logerrno("Failed to redirect STDOUT");
-		if(dup2(STDIN_FILENO, STDERR_FILENO) != STDERR_FILENO)
-			logerrno("Failed to redirect STDERR");
+		dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDERR_FILENO);
+		if (fd > 2)
+			close(fd);
 	}
+
+	int outfile = open(
+		"/var/tmp/aesdsocketdata",
+		O_RDWR | O_APPEND | O_CREAT,
+		S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	if (outfile == -1)
+		logerrno("Failed to open file");
 
 
 	if (listen(sock, 50))
 		logerrno("Failed to listen to incoming connections");
 
 	char *buff = NULL;
-	int outfile;
 	int client;
 	struct sockaddr client_addr;
-	size_t outfile_len = 0;
 	while (!signal_received) {
 
 		socklen_t client_addr_size = sizeof(client_addr);
@@ -134,13 +141,6 @@ int main(int argc, char **argv)
 			"Accepted connection from %s",
 			inet_ntoa(client_in->sin_addr));
 
-	        outfile = open(
-			"/var/tmp/aesdsocketdata",
-			O_RDWR | O_APPEND | O_CREAT,
-			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-		if (outfile == -1)
-			logerrno("Failed to open file");
-
 		size_t buff_len = sizeof(char) * 1024;
 		buff = (char *) malloc(buff_len);
 		if (!buff)
@@ -155,8 +155,6 @@ int main(int argc, char **argv)
 			if (r == 0)
 				break;
 
-			outfile_len += r;
-
 			if (write(outfile, buff, r) == -1)
 				logerrno("Failed to write data");
 
@@ -169,11 +167,9 @@ int main(int argc, char **argv)
 		free(buff);
 		buff = NULL;
 
-		if (!outfile_len) {
-			syslog(LOG_USER | LOG_INFO,
-			       "No bytes read");
-		        exit(EXIT_FAILURE);
-		}
+		off_t outfile_len = lseek(outfile, 0, SEEK_END);
+		if (outfile_len == -1)
+			logerrno("Failed to get file size");
 
 		buff = (char *) malloc(sizeof(char) * outfile_len);
 		if (!buff)
@@ -210,7 +206,7 @@ int main(int argc, char **argv)
 	if (unlink("/var/tmp/aesdsocketdata"))
 		logerrno("Failed to unlink file");
 
-	if (close(outfile))
+	if (outfile)
 		logerrno("Failed to close file");
 
 	if (close(sock))
